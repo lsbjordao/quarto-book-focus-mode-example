@@ -103,9 +103,11 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function isIndexPath(path) {
+    path = String(path || "").trim().toLowerCase();
+    // A path ending with "/" is always a directory index (e.g. /repo-name/ on GitHub Pages)
+    if (path === "/" || path.endsWith("/")) return true;
     path = normalizePath(path);
-    return path === "/" ||
-      path === "/index" ||
+    return path === "/index" ||
       path === "/index.html" ||
       path === "/index.qmd" ||
       path.endsWith("/index") ||
@@ -114,7 +116,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   var currentPath = normalizePath(window.location.pathname || "/");
-  var currentIsIndex = isIndexPath(currentPath);
+  var currentIsIndex = isIndexPath(window.location.pathname || "/");
 
   (function () {
     var links  = document.querySelectorAll("#quarto-sidebar a[href]");
@@ -155,13 +157,18 @@ document.addEventListener("DOMContentLoaded", function () {
   })();
 
   function updateProgress(position) {
-    if (!progressBar || total === 0) return;
-    if (currentIsIndex || chapterProgressIdx < 0 || totalProgressChapters === 0) {
+    if (!progressBar || total === 0 || totalProgressChapters === 0) return;
+    var effectiveTotal = Math.max(1, totalProgressChapters);
+    var globalPct;
+    if (currentIsIndex) {
+      // Prelude (position=1) stays at 0%; sections advance toward 1/N
+      globalPct = (position - 1) / total / effectiveTotal;
+    } else if (chapterProgressIdx < 0) {
       progressBar.style.width = "0%";
       return;
+    } else {
+      globalPct = (chapterProgressIdx / effectiveTotal) + (position / total / effectiveTotal);
     }
-    var effectiveTotal = Math.max(1, totalProgressChapters);
-    var globalPct = (chapterProgressIdx / effectiveTotal) + (position / total / effectiveTotal);
     progressBar.style.width = (globalPct * 100) + "%";
   }
 
