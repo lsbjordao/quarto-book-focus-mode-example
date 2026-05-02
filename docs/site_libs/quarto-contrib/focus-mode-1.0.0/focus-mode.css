@@ -1,5 +1,5 @@
 /* ── Focus Mode button ── */
-#book-focus-toggle {
+#focus-toggle {
   position: fixed;
   left: 1rem;
   bottom: 1rem;
@@ -29,14 +29,14 @@
   transition: padding .22s ease, transform .15s ease, box-shadow .2s ease;
 }
 
-#book-focus-toggle:hover {
+#focus-toggle:hover {
   width: auto;
   padding-right: .9rem;
   box-shadow: 0 3px 14px rgba(0,0,0,.25);
   transform: scale(1.03);
 }
 
-#book-focus-icon {
+#focus-icon {
   width: 44px;
   height: 44px;
   display: inline-flex;
@@ -46,31 +46,43 @@
   flex-shrink: 0;
 }
 
-#book-focus-label {
+#focus-label {
   opacity: 0;
   margin-left: .15rem;
   transition: opacity .18s ease;
 }
 
-#book-focus-toggle:hover #book-focus-label {
+#focus-toggle:hover #focus-label {
   opacity: 1;
 }
 
-/* ── Focus mode: hide Quarto book navigation ── */
-body.book-focus-mode #quarto-sidebar,
-body.book-focus-mode #quarto-margin-sidebar,
-body.book-focus-mode nav#TOC {
+/* ── Focus mode: hide navigation panels ── */
+body.focus-mode #quarto-sidebar,
+body.focus-mode #quarto-margin-sidebar,
+body.focus-mode nav#TOC,
+body.focus-mode #quarto-header,
+html.focus-mode-persisted #quarto-sidebar,
+html.focus-mode-persisted #quarto-margin-sidebar,
+html.focus-mode-persisted nav#TOC,
+html.focus-mode-persisted #quarto-header {
   display: none !important;
 }
 
-body.book-focus-mode #quarto-content {
+body.focus-mode #quarto-content,
+html.focus-mode-persisted #quarto-content {
   display: block !important;
 }
 
-body.book-focus-mode main.content {
-  max-width: var(--book-focus-content-width, 920px);
+body.focus-mode main.content,
+html.focus-mode-persisted main.content {
+  max-width: var(--focus-content-width, 920px);
   margin-left: auto !important;
   margin-right: auto !important;
+}
+
+/* Prevent initial flash of non-active sections while presentation state is restored. */
+html.presentation-mode-preload #quarto-document-content {
+  visibility: hidden;
 }
 
 /* Reading comfort */
@@ -82,39 +94,39 @@ body.book-focus-mode main.content {
 /* ── Presentation mode ── */
 
 /* Non-prelude: hide everything not on the current section path */
-body.book-presentation-mode:not(.pres-prelude) #quarto-document-content > *:not(.pres-current):not(.pres-ancestor) {
+body.presentation-mode:not(.pres-prelude) #quarto-document-content > *:not(.pres-current):not(.pres-ancestor) {
   display: none !important;
 }
 
 /* Prelude: hide all sections, keep title/intro visible */
-body.book-presentation-mode.pres-prelude #quarto-document-content > section[class*="level"] {
+body.presentation-mode.pres-prelude #quarto-document-content > section[class*="level"] {
   display: none !important;
 }
 
 /* Show current section and ancestor sections */
-body.book-presentation-mode .pres-current,
-body.book-presentation-mode .pres-ancestor {
+body.presentation-mode .pres-current,
+body.presentation-mode .pres-ancestor {
   display: block !important;
 }
 
 /* Inside ancestor sections: hide non-section children (headings, paragraphs, etc.)
    so only the path to the current section is visible */
-body.book-presentation-mode .pres-ancestor > :not(section) {
+body.presentation-mode .pres-ancestor > :not(section) {
   display: none !important;
 }
 
 /* Inside ancestor sections: hide sibling sections that are not on the path */
-body.book-presentation-mode .pres-ancestor > section[class*="level"]:not(.pres-current):not(.pres-ancestor) {
+body.presentation-mode .pres-ancestor > section[class*="level"]:not(.pres-current):not(.pres-ancestor) {
   display: none !important;
 }
 
 /* For level2+ current sections: hide their nested subsections */
-body.book-presentation-mode .pres-current:not(.level1) > section[class*="level"] {
+body.presentation-mode .pres-current:not(.level1) > section[class*="level"] {
   display: none !important;
 }
 
 /* ── Presentation progress bar (bottom, full width) ── */
-#book-pres-progress {
+#pres-progress {
   position: fixed;
   bottom: 0;
   left: 0;
@@ -130,18 +142,18 @@ body.book-presentation-mode .pres-current:not(.level1) > section[class*="level"]
   pointer-events: none;
 }
 
-body.book-presentation-mode #book-pres-progress {
+body.presentation-mode #pres-progress {
   display: block;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #book-pres-progress {
+  #pres-progress {
     transition: none;
   }
 }
 
 /* ── Presentation indicator (bottom-right, visible only when active) ── */
-#book-pres-indicator {
+#pres-indicator {
   position: fixed;
   bottom: 1rem;
   right: 1rem;
@@ -167,15 +179,15 @@ body.book-presentation-mode #book-pres-progress {
   pointer-events: none;
 }
 
-body.book-presentation-mode #book-pres-indicator {
+body.presentation-mode #pres-indicator {
   display: inline-flex;
 }
 
 /* ── Desktop-only: hide all UI on touch/mobile devices ── */
 @media not all and (hover: hover) and (pointer: fine) {
-  #book-focus-toggle,
-  #book-pres-progress,
-  #book-pres-indicator {
+  #focus-toggle,
+  #pres-progress,
+  #pres-indicator {
     display: none !important;
   }
 }

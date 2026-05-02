@@ -1,18 +1,28 @@
+(function () {
+  // Apply persisted focus state as early as possible to prevent layout flash.
+  try {
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    if (window.localStorage.getItem("quarto-focus-mode") !== "1") return;
+    document.documentElement.classList.add("focus-mode-persisted");
+    if (document.body) document.body.classList.add("focus-mode");
+  } catch (e) {}
+})();
+
 document.addEventListener("DOMContentLoaded", function () {
 
   /* ── Create DOM elements ── */
   var button = document.createElement("button");
-  button.id = "book-focus-toggle";
+  button.id = "focus-toggle";
   button.setAttribute("aria-label", "Focus Mode");
   button.setAttribute("type", "button");
 
   var icon = document.createElement("span");
-  icon.id = "book-focus-icon";
+  icon.id = "focus-icon";
   icon.setAttribute("aria-hidden", "true");
   icon.textContent = "⛶";
 
   var label = document.createElement("span");
-  label.id = "book-focus-label";
+  label.id = "focus-label";
   label.textContent = "Focus Mode";
 
   button.appendChild(icon);
@@ -20,35 +30,43 @@ document.addEventListener("DOMContentLoaded", function () {
   document.body.appendChild(button);
 
   var progressBar = document.createElement("div");
-  progressBar.id = "book-pres-progress";
+  progressBar.id = "pres-progress";
   document.body.appendChild(progressBar);
 
   var indicator = document.createElement("div");
-  indicator.id = "book-pres-indicator";
+  indicator.id = "pres-indicator";
   indicator.setAttribute("aria-live", "polite");
 
   var counter = document.createElement("span");
-  counter.id = "book-pres-counter";
+  counter.id = "pres-counter";
   indicator.appendChild(counter);
   document.body.appendChild(indicator);
 
   /* ── Desktop-only guard ── */
   if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+    document.documentElement.classList.remove("focus-mode-persisted");
+    document.documentElement.classList.remove("presentation-mode-preload");
+    document.body.classList.remove("focus-mode");
     button.style.display = "none";
     return;
   }
 
-  /* ── Focus Mode ── */
-  var hasBookSidebar = document.querySelector("#quarto-sidebar") !== null;
-  if (!hasBookSidebar) {
+  /* ── Sidebar detection (Quarto outputs with sidebar) ── */
+  var hasSidebar = document.querySelector("#quarto-sidebar") !== null;
+  if (!hasSidebar) {
+    document.documentElement.classList.remove("focus-mode-persisted");
+    document.documentElement.classList.remove("presentation-mode-preload");
+    document.body.classList.remove("focus-mode");
     button.style.display = "none";
     return;
   }
 
-  var storageKey = "quarto-book-focus-mode";
+  var hasSequentialLinks = !!document.head.querySelector('link[rel="next"], link[rel="prev"]');
+  var storageKey = "quarto-focus-mode";
 
   function setFocusMode(enabled) {
-    document.body.classList.toggle("book-focus-mode", enabled);
+    document.body.classList.toggle("focus-mode", enabled);
+    document.documentElement.classList.toggle("focus-mode-persisted", enabled);
     if (enabled) {
       icon.textContent  = "☰";
       label.textContent = "TOC";
@@ -66,12 +84,32 @@ document.addEventListener("DOMContentLoaded", function () {
   setFocusMode(saved === "1");
 
   button.addEventListener("click", function () {
-    setFocusMode(!document.body.classList.contains("book-focus-mode"));
+    setFocusMode(!document.body.classList.contains("focus-mode"));
   });
+
+  /* ── Block 'f' on both keydown and keyup at window capture ── */
+  /* Quarto's search shortcut listens on keyup; blocking only keydown is not  */
+  /* enough — the keyup still fires and opens search. Both events are         */
+  /* intercepted here at window capture (above document in the event path).   */
+  function onFocusKey(e) {
+    var tag = document.activeElement ? document.activeElement.tagName : "";
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" ||
+        (document.activeElement && document.activeElement.isContentEditable)) return;
+    if (e.key === "f" || e.key === "F") {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (e.type === "keydown") setFocusMode(true);
+    }
+  }
+  window.addEventListener("keydown", onFocusKey, true);
+  window.addEventListener("keyup",   onFocusKey, true);
 
   /* ── Presentation Mode ── */
   var contentRoot = document.getElementById("quarto-document-content");
-  if (!contentRoot) return;
+  if (!contentRoot) {
+    document.documentElement.classList.remove("presentation-mode-preload");
+    return;
+  }
 
   // Collect all sections in document (DFS) order
   var slides = [];
@@ -122,7 +160,7 @@ document.addEventListener("DOMContentLoaded", function () {
     return path || "/";
   }
 
-  function bookPageKey(path) {
+  function pageKey(path) {
     path = normalizePath(path);
     return path
       .replace(/\/index\.html$/, "")
@@ -130,7 +168,7 @@ document.addEventListener("DOMContentLoaded", function () {
       .replace(/\/index$/, "") || "/";
   }
 
-  var currentPath = bookPageKey(window.location.pathname || "/");
+  var currentPath = pageKey(window.location.pathname || "/");
 
   function hasPreludeIn(root) {
     if (!root) return false;
@@ -161,7 +199,7 @@ document.addEventListener("DOMContentLoaded", function () {
     return countSectionsIn(root) + (hasPreludeIn(root) ? 1 : 0);
   }
 
-  function bookPageUrlFromHref(href) {
+  function pageUrlFromHref(href) {
     try {
       var url = new URL(href, window.location.href);
       if (url.origin !== window.location.origin) return null;
@@ -172,22 +210,22 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  function bookPageFromDocument(doc, url, count) {
+  function pageFromDocument(doc, url, count) {
     return {
-      key: bookPageKey(url.pathname || "/"),
+      key: pageKey(url.pathname || "/"),
       url: url.href,
       count: typeof count === "number" ? count : countPassagesInDocument(doc),
       doc: doc
     };
   }
 
-  function linkedBookPageUrl(doc, baseUrl, rel) {
+  function linkedPageUrl(doc, baseUrl, rel) {
     var link = doc.querySelector('link[rel~="' + rel + '"]');
     if (!link) return null;
-    return bookPageUrlFromHref(new URL(link.getAttribute("href") || "", baseUrl).href);
+    return pageUrlFromHref(new URL(link.getAttribute("href") || "", baseUrl).href);
   }
 
-  function fetchBookPage(url) {
+  function fetchPage(url) {
     var parser = new DOMParser();
     return fetch(url.href, { credentials: "same-origin" })
       .then(function (response) {
@@ -196,11 +234,11 @@ document.addEventListener("DOMContentLoaded", function () {
       })
       .then(function (html) {
         var doc = parser.parseFromString(html, "text/html");
-        return bookPageFromDocument(doc, url);
+        return pageFromDocument(doc, url);
       });
   }
 
-  var bookProgress = {
+  var presentationProgress = {
     ready: false,
     failed: false,
     pages: [],
@@ -208,7 +246,7 @@ document.addEventListener("DOMContentLoaded", function () {
     currentPageStart: 0,
     totalPassages: 0
   };
-  var progressStorageKey = "quarto-book-presentation-progress";
+  var progressStorageKey = "quarto-presentation-progress";
 
   function setProgressWidth(percent, animate) {
     if (!progressBar) return;
@@ -231,7 +269,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function restoreProgressWidth() {
     try {
-      if (localStorage.getItem("quarto-book-presentation-mode") !== "1") return;
+      if (localStorage.getItem("quarto-presentation-mode") !== "1") return;
       var savedProgress = parseFloat(localStorage.getItem(progressStorageKey) || "");
       if (!isNaN(savedProgress)) setProgressWidth(savedProgress, false);
     } catch (e) {}
@@ -239,91 +277,139 @@ document.addEventListener("DOMContentLoaded", function () {
 
   restoreProgressWidth();
 
-  function finishBookProgressSetup() {
-    bookProgress.totalPassages = 0;
-    bookProgress.currentPageStart = 0;
-    bookProgress.currentPageIndex = -1;
+  function finishProgressSetup() {
+    presentationProgress.totalPassages = 0;
+    presentationProgress.currentPageStart = 0;
+    presentationProgress.currentPageIndex = -1;
 
-    for (var i = 0; i < bookProgress.pages.length; i++) {
-      if (bookProgress.pages[i].key === currentPath) {
-        bookProgress.currentPageIndex = i;
-        bookProgress.currentPageStart = bookProgress.totalPassages;
+    for (var i = 0; i < presentationProgress.pages.length; i++) {
+      if (presentationProgress.pages[i].key === currentPath) {
+        presentationProgress.currentPageIndex = i;
+        presentationProgress.currentPageStart = presentationProgress.totalPassages;
       }
-      bookProgress.totalPassages += bookProgress.pages[i].count;
+      presentationProgress.totalPassages += presentationProgress.pages[i].count;
     }
 
-    bookProgress.ready = !bookProgress.failed &&
-      bookProgress.totalPassages > 0 &&
-      bookProgress.currentPageIndex >= 0;
+    presentationProgress.ready = !presentationProgress.failed &&
+      presentationProgress.totalPassages > 0 &&
+      presentationProgress.currentPageIndex >= 0;
   }
 
-  function setupBookProgress() {
-    var currentUrl = bookPageUrlFromHref(window.location.href);
+  /* ── Sidebar page list (quarto-website navigation) ── */
+  function buildSidebarPages() {
+    var seen = {};
+    var pages = [];
+    // .sidebar-item-section items are collapsible group headers, not pages — exclude them
+    var links = document.querySelectorAll("#quarto-sidebar .sidebar-item:not(.sidebar-item-section) a[href]");
+    for (var i = 0; i < links.length; i++) {
+      var a = links[i];
+      var href = a.getAttribute("href") || "";
+      if (!href || href.charAt(0) === "#") continue;
+      try {
+        var url = new URL(a.href);
+        if (url.origin !== window.location.origin) continue;
+        url.hash = "";
+        var key = pageKey(url.pathname);
+        if (!seen[key]) {
+          seen[key] = true;
+          pages.push({ key: key, url: url.href, count: 1, doc: null });
+        }
+      } catch (ex) {}
+    }
+    return pages;
+  }
+
+  function navigateSidebarPage(direction) {
+    var pages = buildSidebarPages();
+    for (var i = 0; i < pages.length; i++) {
+      if (pages[i].key === currentPath) {
+        var target = pages[i + direction];
+        if (target) window.location.href = target.url;
+        return;
+      }
+    }
+  }
+
+  function setupProgress() {
+    var currentUrl = pageUrlFromHref(window.location.href);
     if (!currentUrl) return;
 
+    var currentPage = pageFromDocument(document, currentUrl, total);
+    var updatePos = function () {
+      updateProgress(currentIdx < 0 ? 1 : currentIdx + 1 + (hasPrelude ? 1 : 0));
+    };
+
+    if (!hasSequentialLinks) {
+      // Website: fetch all sidebar pages in parallel to get their section counts,
+      // so PageDown/PageUp progress within a page is globally consistent.
+      var sidebarPages = buildSidebarPages();
+      if (sidebarPages.length === 0) { presentationProgress.failed = true; updatePos(); return; }
+
+      var fetches = sidebarPages.map(function (page) {
+        if (page.key === currentPage.key) { page.count = total; return Promise.resolve(); }
+        var url = pageUrlFromHref(page.url);
+        if (!url) return Promise.resolve();
+        return fetchPage(url).then(function (fetched) { page.count = fetched.count; }).catch(function () {});
+      });
+
+      Promise.all(fetches).then(function () {
+        presentationProgress.pages = sidebarPages;
+        finishProgressSetup();
+        updatePos();
+      }).catch(function () { presentationProgress.failed = true; updatePos(); });
+      return;
+    }
+
+    // Sequential output: walk the link[rel="prev/next"] chain sequentially.
     var seen = {};
-    var currentPage = bookPageFromDocument(document, currentUrl, total);
     var before = [];
     var after = [];
     seen[currentPage.key] = true;
 
     function collectPrevious(fromPage) {
-      var prevUrl = linkedBookPageUrl(fromPage.doc, fromPage.url, "prev");
+      var prevUrl = linkedPageUrl(fromPage.doc, fromPage.url, "prev");
       if (!prevUrl) return Promise.resolve();
-
-      var key = bookPageKey(prevUrl.pathname || "/");
+      var key = pageKey(prevUrl.pathname || "/");
       if (seen[key]) return Promise.resolve();
       seen[key] = true;
-
-      return fetchBookPage(prevUrl).then(function (page) {
-        before.unshift(page);
-        return collectPrevious(page);
-      });
+      return fetchPage(prevUrl).then(function (page) { before.unshift(page); return collectPrevious(page); });
     }
 
     function collectNext(fromPage) {
-      var nextUrl = linkedBookPageUrl(fromPage.doc, fromPage.url, "next");
+      var nextUrl = linkedPageUrl(fromPage.doc, fromPage.url, "next");
       if (!nextUrl) return Promise.resolve();
-
-      var key = bookPageKey(nextUrl.pathname || "/");
+      var key = pageKey(nextUrl.pathname || "/");
       if (seen[key]) return Promise.resolve();
       seen[key] = true;
-
-      return fetchBookPage(nextUrl).then(function (page) {
-        after.push(page);
-        return collectNext(page);
-      });
+      return fetchPage(nextUrl).then(function (page) { after.push(page); return collectNext(page); });
     }
 
     Promise.all([collectPrevious(currentPage), collectNext(currentPage)]).then(function () {
-      bookProgress.pages = before.concat([currentPage], after);
-      finishBookProgressSetup();
-      updateProgress(currentIdx < 0 ? 1 : currentIdx + 1 + (hasPrelude ? 1 : 0));
-    }).catch(function () {
-      bookProgress.failed = true;
-      updateProgress(currentIdx < 0 ? 1 : currentIdx + 1 + (hasPrelude ? 1 : 0));
-    });
+      presentationProgress.pages = before.concat([currentPage], after);
+      finishProgressSetup();
+      updatePos();
+    }).catch(function () { presentationProgress.failed = true; updatePos(); });
   }
 
-  setupBookProgress();
+  setupProgress();
 
-  // One progress step per presentation passage across the whole book.
+  // One progress step per presentation passage across the whole output.
   // position: 1 = prelude (or first slide when no prelude), up to total.
   function updateProgress(position) {
     if (!progressBar || total === 0) return;
 
     position = Math.max(1, Math.min(position, total));
 
-    if (bookProgress.ready) {
-      var globalIndex = bookProgress.currentPageStart + position - 1;
-      var denominator = Math.max(bookProgress.totalPassages - 1, 1);
-      var percent = bookProgress.totalPassages === 1 ? 100 : (globalIndex / denominator) * 100;
+    if (presentationProgress.ready) {
+      var globalIndex = presentationProgress.currentPageStart + position - 1;
+      var denominator = Math.max(presentationProgress.totalPassages - 1, 1);
+      var percent = presentationProgress.totalPassages === 1 ? 100 : (globalIndex / denominator) * 100;
       setProgressWidth(percent, true);
       saveProgressWidth(percent);
       return;
     }
 
-    if (bookProgress.failed) {
+    if (presentationProgress.failed) {
       var localDenominator = Math.max(total - 1, 1);
       var localPercent = total === 1 ? 100 : ((position - 1) / localDenominator) * 100;
       setProgressWidth(localPercent, true);
@@ -337,12 +423,56 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  /* ── TOC highlight sync for presentation mode ── */
+  // Quarto's scroll handler (quarto.js) calls updateActiveLink() on every scroll
+  // event and resets the active class based on offsetTop — which is unreliable in
+  // presentation mode (hidden sections collapse to offsetTop≈0). A MutationObserver
+  // guards the desired active state and immediately restores it whenever Quarto
+  // overwrites it. The needsUpdate check prevents infinite observer loops.
+  var tocGuard = null;
+
+  function updateTocHighlight(sectionId) {
+    var toc = document.getElementById("TOC");
+    if (tocGuard) { tocGuard.disconnect(); tocGuard = null; }
+    if (!toc) return;
+
+    var links = toc.querySelectorAll("a[data-scroll-target]");
+    var targetLink = null;
+
+    for (var i = 0; i < links.length; i++) {
+      var isTarget = !!sectionId && links[i].getAttribute("href") === "#" + sectionId;
+      links[i].classList.toggle("active", isTarget);
+      if (isTarget) {
+        targetLink = links[i];
+        links[i].scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    }
+
+    if (!sectionId || !presActive || !targetLink) return;
+
+    tocGuard = new MutationObserver(function () {
+      if (!presActive) return;
+      var needsUpdate = false;
+      for (var i = 0; i < links.length; i++) {
+        if (links[i].classList.contains("active") !== (links[i] === targetLink)) {
+          needsUpdate = true; break;
+        }
+      }
+      if (!needsUpdate) return;
+      for (var i = 0; i < links.length; i++) {
+        links[i].classList.toggle("active", links[i] === targetLink);
+      }
+    });
+    tocGuard.observe(toc, { attributes: true, attributeFilter: ["class"], subtree: true });
+  }
+
   function showPrelude() {
     clearPresClasses();
     currentIdx = -1;
     document.body.classList.add('pres-prelude');
     counter.textContent = "1 / " + total;
     updateProgress(1);
+    updateTocHighlight(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -366,19 +496,30 @@ document.addEventListener("DOMContentLoaded", function () {
     var position = idx + 1 + offset;
     counter.textContent = position + " / " + total;
     updateProgress(position);
+    updateTocHighlight(section.id || null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  var presStorageKey = "quarto-book-presentation-mode";
+  var presStorageKey = "quarto-presentation-mode";
+
+  function clearPresentationPreload() {
+    document.documentElement.classList.remove("presentation-mode-preload");
+  }
 
   function setPresentationMode(enabled) {
     if (enabled && total === 0) return;
     presActive = enabled;
-    document.body.classList.toggle("book-presentation-mode", enabled);
+    document.body.classList.toggle("presentation-mode", enabled);
     if (enabled) {
       if (hasPrelude) { showPrelude(); } else { showSlide(0); }
+      // Release visibility lock on the next frame after slide classes are set.
+      requestAnimationFrame(clearPresentationPreload);
     } else {
       clearPresClasses();
+      updateTocHighlight(null);
+      clearPresentationPreload();
+      // Re-trigger Quarto's scrollspy so TOC reverts to scroll-based highlight
+      window.dispatchEvent(new Event("scroll"));
     }
     try { localStorage.setItem(presStorageKey, enabled ? "1" : "0"); } catch (e) {}
   }
@@ -386,6 +527,8 @@ document.addEventListener("DOMContentLoaded", function () {
   try {
     if (localStorage.getItem(presStorageKey) === "1") setPresentationMode(true);
   } catch (e) {}
+
+  if (!presActive) clearPresentationPreload();
 
   function findSlideForElement(el) {
     if (!el) return -1;
@@ -443,12 +586,6 @@ document.addEventListener("DOMContentLoaded", function () {
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" ||
         (document.activeElement && document.activeElement.isContentEditable)) return;
 
-    if (e.key === "f" || e.key === "F") {
-      e.preventDefault();
-      setFocusMode(true);
-      return;
-    }
-
     if (e.key === "t" || e.key === "T") {
       e.preventDefault();
       setFocusMode(false);
@@ -470,20 +607,14 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     if (e.key === "ArrowRight") {
-      var nextPageButton = document.querySelector(".nav-page-next a");
-      if (nextPageButton) {
-        e.preventDefault();
-        nextPageButton.click();
-      }
+      e.preventDefault();
+      navigateSidebarPage(1);
       return;
     }
 
     if (e.key === "ArrowLeft") {
-      var prevPageButton = document.querySelector(".nav-page-previous a");
-      if (prevPageButton) {
-        e.preventDefault();
-        prevPageButton.click();
-      }
+      e.preventDefault();
+      navigateSidebarPage(-1);
       return;
     }
 
