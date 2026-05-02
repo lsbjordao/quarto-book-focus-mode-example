@@ -1,0 +1,10 @@
+# Preface
+
+This is a minimal example of the [Focus Mode](https://github.com/lsbjordao/quarto-book-focus-mode) extension for Quarto Book.
+
+Two keyboard-driven modes that work on top of any Quarto Book HTML output:
+
+- **Focus Mode** ([keyboard shortcut `f`](chapter-00.qmd#keyboard-shortcuts)) hides the sidebar and margin TOC so the content takes center stage — great for reading without distractions and bigger images. To get back the TOC, press ([keyboard shortcut `t`](chapter-00.qmd#keyboard-shortcuts)) or click the floating button in the bottom-left corner.
+
+- **Presentation Mode** ([keyboard shortcut `p`](chapter-00.qmd#keyboard-shortcuts)) splits the page into one slide per section or subsection. 
+    - Navigate forward and backward with `PageDown` / `PageUp` within the same chapter, and `→` / `←` to move between chapters. A progress bar shows where you are in the book.

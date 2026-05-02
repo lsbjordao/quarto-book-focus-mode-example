@@ -1,0 +1,22 @@
+on:
+  push:
+    branches: [main]
+
+name: Publish to GitHub Pages
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: quarto-dev/quarto-actions/setup@v2
+
+      - name: Install extension
+        run: quarto add lsbjordao/quarto-book-focus-mode --no-prompt
+
+      - uses: quarto-dev/quarto-actions/publish@v2
+        with:
+          target: gh-pages

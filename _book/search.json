@@ -1,0 +1,132 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Focus Mode Example",
+    "section": "",
+    "text": "Preface\nThis is a minimal example of the Focus Mode extension for Quarto Book.\nTwo keyboard-driven modes that work on top of any Quarto Book HTML output:\n\nFocus Mode (keyboard shortcut f) hides the sidebar and margin TOC so the content takes center stage — great for reading without distractions and bigger images. To get back the TOC, press (keyboard shortcut t) or click the floating button in the bottom-left corner.\nPresentation Mode (keyboard shortcut p) splits the page into one slide per section or subsection.\n\nNavigate forward and backward with PageDown / PageUp within the same chapter, and → / ← to move between chapters. A progress bar shows where you are in the book.",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Preface</span>"
+    ]
+  },
+  {
+    "objectID": "chapter-01.html",
+    "href": "chapter-01.html",
+    "title": "Focus Mode",
+    "section": "",
+    "text": "How it works\nPress f to enter Focus Mode. The sidebar and margin TOC disappear, and the content recenters for comfortable reading.\nPress t to bring the navigation back.\nThe floating button in the bottom-left corner does the same thing with a click.\nIf text looks too small or too large, use Ctrl + to zoom in and Ctrl - to zoom out (Ctrl 0 resets the zoom level).\nFocus Mode adds the class book-focus-mode to &lt;body&gt;. The sidebar (#quarto-sidebar) and margin TOC (#quarto-margin-sidebar) are hidden with CSS, and the main content column is recentered.\nThe selected state is saved in localStorage, so it persists as you navigate between chapters.",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Focus Mode</span>"
+    ]
+  },
+  {
+    "objectID": "chapter-01.html#custom-content-width",
+    "href": "chapter-01.html#custom-content-width",
+    "title": "Focus Mode",
+    "section": "Custom content width",
+    "text": "Custom content width\nYou can control the reading width by setting a CSS variable in your project stylesheet:\n:root {\n  --book-focus-content-width: 960px;\n}",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Focus Mode</span>"
+    ]
+  },
+  {
+    "objectID": "chapter-01.html#dark-and-light-theme",
+    "href": "chapter-01.html#dark-and-light-theme",
+    "title": "Focus Mode",
+    "section": "Dark and light theme",
+    "text": "Dark and light theme\nIf your book is configured with a dark theme (e.g. theme: [flatly, darkly]), you can switch between schemes with:\n\nd — Dark Mode\nl — Light Mode",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Focus Mode</span>"
+    ]
+  },
+  {
+    "objectID": "chapter-01.html#chapter-navigation",
+    "href": "chapter-01.html#chapter-navigation",
+    "title": "Focus Mode",
+    "section": "Chapter navigation",
+    "text": "Chapter navigation\nTo move to the previous or next chapter, use ← and →.",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Focus Mode</span>"
+    ]
+  },
+  {
+    "objectID": "chapter-02.html",
+    "href": "chapter-02.html",
+    "title": "Presentation Mode",
+    "section": "",
+    "text": "Section navigation\nPress p to enter Presentation Mode. The page is split into one slide per section — every heading level becomes its own slide.\nNavigate with:\nA progress bar at the bottom of the screen shows how far you are in the book, and a small badge in the bottom-right corner shows your position within the current page (e.g. 3 / 12).\nPress p again to exit.\nThis is the first subsection of this chapter. Press PageDown to move to the next one.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Presentation Mode</span>"
+    ]
+  },
+  {
+    "objectID": "chapter-02.html#sec-section-navigation",
+    "href": "chapter-02.html#sec-section-navigation",
+    "title": "Presentation Mode",
+    "section": "",
+    "text": "Introduction\nEach heading level becomes its own slide. This is the ### Introduction subsection of ## Section navigation (Section navigation).\n\n\nDetails\nThis is another subsection. Notice how the content above is hidden — only the current section is visible.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Presentation Mode</span>"
+    ]
+  },
+  {
+    "objectID": "chapter-02.html#prelude",
+    "href": "chapter-02.html#prelude",
+    "title": "Presentation Mode",
+    "section": "Prelude",
+    "text": "Prelude\nIf the page has content before the first heading (like a short intro paragraph), that content is shown as the first slide.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Presentation Mode</span>"
+    ]
+  },
+  {
+    "objectID": "chapter-02.html#combining-modes",
+    "href": "chapter-02.html#combining-modes",
+    "title": "Presentation Mode",
+    "section": "Combining modes",
+    "text": "Combining modes\nFocus Mode and Presentation Mode are independent. You can activate both at the same time: press f then p for a clean, distraction-free presentation.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Presentation Mode</span>"
+    ]
+  },
+  {
+    "objectID": "chapter-03.html",
+    "href": "chapter-03.html",
+    "title": "Installation",
+    "section": "",
+    "text": "Requirements\nAdd the extension to your Quarto project:\nThen enable the filter in _quarto.yml:\nRender as usual:\nThe extension automatically detects whether the page uses the Quarto Book sidebar layout. The floating button hides itself on pages that do not.",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Installation</span>"
+    ]
+  },
+  {
+    "objectID": "chapter-03.html#requirements",
+    "href": "chapter-03.html#requirements",
+    "title": "Installation",
+    "section": "",
+    "text": "Quarto ≥ 1.4\nHTML book output (project: type: book)",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Installation</span>"
+    ]
+  },
+  {
+    "objectID": "chapter-03.html#source",
+    "href": "chapter-03.html#source",
+    "title": "Installation",
+    "section": "Source",
+    "text": "Source\n\nExtension: https://github.com/lsbjordao/quarto-book-focus-mode\nThis example: https://github.com/lsbjordao/quarto-book-focus-mode-example",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Installation</span>"
+    ]
+  },
+  {
+    "objectID": "chapter-04.html",
+    "href": "chapter-04.html",
+    "title": "Keyboard shortcuts",
+    "section": "",
+    "text": "Key\nAction\n\n\n\n\nf\nEnter Focus Mode\n\n\nt\nReturn to TOC\n\n\np\nToggle Presentation Mode\n\n\nd / l\nDark / Light theme\n\n\n→ / ←\nNext / Previous chapter\n\n\nPageDown / PageUp\nNext / Previous section (Presentation Mode)",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Keyboard shortcuts</span>"
+    ]
+  }
+]

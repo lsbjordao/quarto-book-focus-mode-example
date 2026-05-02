@@ -1,0 +1,35 @@
+# Installation
+
+Add the extension to your Quarto project:
+
+```bash
+quarto add lsbjordao/quarto-book-focus-mode
+```
+
+Then enable the filter in `_quarto.yml`:
+
+```yaml
+format:
+  html:
+    theme: [flatly, darkly]
+    filters:
+      - focus-mode
+```
+
+Render as usual:
+
+```bash
+quarto render
+```
+
+## Requirements
+
+- Quarto ≥ 1.4
+- HTML book output (`project: type: book`)
+
+The extension automatically detects whether the page uses the Quarto Book sidebar layout. The floating button hides itself on pages that do not.
+
+## Source
+
+- Extension: <https://github.com/lsbjordao/quarto-book-focus-mode>
+- This example: <https://github.com/lsbjordao/quarto-book-focus-mode-example>

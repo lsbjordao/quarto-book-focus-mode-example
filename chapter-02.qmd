@@ -1,0 +1,32 @@
+# Presentation Mode
+
+Press `p` to enter Presentation Mode. The page is split into one slide per section — every heading level becomes its own slide.
+
+Navigate with:
+
+- `PageDown` — next section
+- `PageUp` — previous section
+
+A progress bar at the bottom of the screen shows how far you are in the book, and a small badge in the bottom-right corner shows your position within the current page (e.g. `3 / 12`).
+
+Press `p` again to exit.
+
+## Section navigation {#sec-section-navigation}
+
+This is the first subsection of this chapter. Press `PageDown` to move to the next one.
+
+### Introduction
+
+Each heading level becomes its own slide. This is the `### Introduction` subsection of `## Section navigation` (@sec-section-navigation).
+
+### Details
+
+This is another subsection. Notice how the content above is hidden — only the current section is visible.
+
+## Prelude
+
+If the page has content before the first heading (like a short intro paragraph), that content is shown as the first slide.
+
+## Combining modes
+
+Focus Mode and Presentation Mode are independent. You can activate both at the same time: press `f` then `p` for a clean, distraction-free presentation.

@@ -1,0 +1,26 @@
+project:
+  type: book
+  output-dir: _book
+
+book:
+  title: "Focus Mode Example"
+  subtitle: "Helping you focus on your Quarto Book’s content and turning it into a presentation"
+  author: "Lucas S.B. Jordão"
+  date: "2026-05-01"
+  chapters:
+    - index.qmd
+    - chapter-01.qmd
+    - chapter-02.qmd
+    - chapter-03.qmd
+    - chapter-04.qmd
+  abstract: |
+    This is an example of a Quarto Book that uses the [focus-mode extension of Quarto-book](https://github.com/lsbjordao/quarto-book-focus-mode)
+
+format:
+  html:
+    theme: 
+      light: flatly
+      dark: darkly
+    number-sections: false
+    filters:
+      - focus-mode

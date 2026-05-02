@@ -1,0 +1,10 @@
+# Keyboard shortcuts
+
+| Key | Action |
+|-----|--------|
+| `f` | Enter Focus Mode |
+| `t` | Return to TOC |
+| `p` | Toggle Presentation Mode |
+| `d` / `l` | Dark / Light theme |
+| `→` / `←` | Next / Previous chapter |
+| `PageDown` / `PageUp` | Next / Previous section (Presentation Mode) |
