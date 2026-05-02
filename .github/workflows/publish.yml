@@ -2,13 +2,11 @@ on:
   push:
     branches: [main]
 
-name: Publish to GitHub Pages
+name: Render Quarto Book
 
 jobs:
-  build-deploy:
+  render:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -17,6 +15,5 @@ jobs:
       - name: Install extension
         run: quarto add lsbjordao/quarto-book-focus-mode --no-prompt
 
-      - uses: quarto-dev/quarto-actions/publish@v2
-        with:
-          target: gh-pages
+      - name: Render project
+        run: quarto render
