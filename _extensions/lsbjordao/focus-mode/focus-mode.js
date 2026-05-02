@@ -171,11 +171,12 @@ document.addEventListener("DOMContentLoaded", function () {
   })();
 
   // Cache slide counts per page so each slide has equal global weight
-  var slideCountKey = "quarto-book-pres-slide-counts";
+  var slideCountKey = "quarto-book-pres-slide-counts-v2";
   var savedCounts = {};
   try { savedCounts = JSON.parse(localStorage.getItem(slideCountKey) || "{}"); } catch (e) {}
   if (total > 0) {
-    savedCounts[currentIsIndex ? "__index__" : currentPath] = total;
+    // Index: prelude maps to 0% (not 1/grandTotal), so store slides.length to keep indexSlides aligned.
+    savedCounts[currentIsIndex ? "__index__" : currentPath] = currentIsIndex ? slides.length : total;
     try { localStorage.setItem(slideCountKey, JSON.stringify(savedCounts)); } catch (e) {}
   }
 
@@ -200,8 +201,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     var globalPct;
     if (currentIsIndex) {
-      // Prelude (position=1) = 0%; sections advance proportionally
-      globalPct = (position - 1) / grandTotal;
+      // Prelude (position=1) → 0%; first section → 1/grandTotal regardless of whether prelude exists.
+      globalPct = Math.max(0, position - (hasPrelude ? 1 : 0)) / grandTotal;
     } else if (chapterProgressIdx < 0) {
       progressBar.style.width = "0%";
       return;
