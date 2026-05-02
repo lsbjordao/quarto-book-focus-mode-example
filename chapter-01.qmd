@@ -6,6 +6,8 @@ Press `t` to bring the navigation back.
 
 The floating button in the bottom-left corner does the same thing with a click.
 
+This extension is desktop-only and is automatically disabled on mobile/touch devices.
+
 If text looks too small or too large, use `Ctrl +` to zoom in and `Ctrl -` to zoom out (`Ctrl 0` resets the zoom level).
 
 ![Example view of focus mode and reading layout](images/image2.png)

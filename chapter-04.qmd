@@ -8,3 +8,5 @@
 | `d` / `l` | Dark / Light theme |
 | `→` / `←` | Next / Previous chapter |
 | `PageDown` / `PageUp` | Next / Previous section (Presentation Mode) |
+
+Note: shortcuts are available on desktop only. On mobile/touch devices, the extension is disabled.

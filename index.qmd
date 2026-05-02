@@ -4,6 +4,8 @@ This is a minimal example of the [Focus Mode](https://github.com/lsbjordao/quart
 
 Two keyboard-driven modes that work on top of any Quarto Book HTML output:
 
+This extension is desktop-only and is automatically disabled on mobile/touch devices.
+
 - **Focus Mode** ([keyboard shortcut `f`](chapter-04.qmd#keyboard-shortcuts)) hides the sidebar and margin TOC so the content takes center stage — great for reading without distractions and bigger images. To get back the TOC, press ([keyboard shortcut `t`](chapter-04.qmd#keyboard-shortcuts)) or click the floating button in the bottom-left corner.
 
 - **Presentation Mode** ([keyboard shortcut `p`](chapter-04.qmd#keyboard-shortcuts)) splits the page into one slide per section or subsection. 
