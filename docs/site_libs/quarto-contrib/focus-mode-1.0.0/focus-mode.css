@@ -121,14 +121,23 @@ body.book-presentation-mode .pres-current:not(.level1) > section[class*="level"]
   height: 3px;
   width: 0%;
   background: var(--bs-primary, #0d6efd);
+  background-image: linear-gradient(90deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.35) 100%);
+  box-shadow: 0 0 10px rgba(13,110,253,0.35);
   z-index: 10000;
   display: none;
-  transition: width 0.35s ease;
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: width;
   pointer-events: none;
 }
 
 body.book-presentation-mode #book-pres-progress {
   display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #book-pres-progress {
+    transition: none;
+  }
 }
 
 /* ── Presentation indicator (bottom-right, visible only when active) ── */

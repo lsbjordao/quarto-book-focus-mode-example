@@ -108,11 +108,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   var total = slides.length + (hasPrelude ? 1 : 0);
 
-  // Compute this chapter's position within the full book via the sidebar links
-  // while ignoring index/opening pages in progress calculations.
-  var chapterProgressIdx = -1, totalProgressChapters = 0;
-  var progressLinks = [];
-
   function normalizePath(path) {
     if (!path) return "/";
     path = String(path).trim().toLowerCase();
@@ -121,100 +116,212 @@ document.addEventListener("DOMContentLoaded", function () {
     return path || "/";
   }
 
-  function pathFromHref(href) {
-    try {
-      return normalizePath(new URL(href, window.location.href).pathname || "/");
-    } catch (e) {
-      return normalizePath((href || "").split("#")[0].split("?")[0]);
-    }
-  }
-
-  function isIndexPath(path) {
-    path = String(path || "").trim().toLowerCase();
-    if (path === "/" || path.endsWith("/")) return true;
+  function bookPageKey(path) {
     path = normalizePath(path);
-    return path === "/index" ||
-      path === "/index.html" ||
-      path === "/index.qmd" ||
-      path.endsWith("/index") ||
-      path.endsWith("/index.html") ||
-      path.endsWith("/index.qmd");
+    return path
+      .replace(/\/index\.html$/, "")
+      .replace(/\/index\.qmd$/, "")
+      .replace(/\/index$/, "") || "/";
   }
 
-  var currentPath = normalizePath(window.location.pathname || "/");
-  var currentIsIndex = isIndexPath(window.location.pathname || "/");
+  var currentPath = bookPageKey(window.location.pathname || "/");
 
-  (function () {
-    var links  = document.querySelectorAll("#quarto-sidebar a[href]");
-    var active = document.querySelector("#quarto-sidebar a.active, #quarto-sidebar a[aria-current]");
-    if (links.length > 0) {
-      for (var i = 0; i < links.length; i++) {
-        var href = links[i].getAttribute("href") || "";
-        if (isIndexPath(pathFromHref(href))) continue;
-        progressLinks.push(links[i]);
-      }
-      totalProgressChapters = progressLinks.length;
-
-      if (active) {
-        for (var k = 0; k < progressLinks.length; k++) {
-          if (progressLinks[k] === active) { chapterProgressIdx = k; break; }
-        }
-      }
-      if (chapterProgressIdx < 0) {
-        for (var m = 0; m < progressLinks.length; m++) {
-          var pHref = progressLinks[m].getAttribute("href") || "";
-          if (pathFromHref(pHref) === currentPath) { chapterProgressIdx = m; break; }
-        }
-      }
-      if (currentIsIndex) chapterProgressIdx = -1;
+  function hasPreludeIn(root) {
+    if (!root) return false;
+    for (var i = 0; i < root.children.length; i++) {
+      if (!root.children[i].matches('section[class*="level"]')) return true;
     }
-  })();
-
-  // Cache slide counts per page so each slide has equal global weight
-  var slideCountKey = "quarto-book-pres-slide-counts-v2";
-  var savedCounts = {};
-  try { savedCounts = JSON.parse(localStorage.getItem(slideCountKey) || "{}"); } catch (e) {}
-  if (total > 0) {
-    // Index: prelude maps to 0% (not 1/grandTotal), so store slides.length to keep indexSlides aligned.
-    savedCounts[currentIsIndex ? "__index__" : currentPath] = currentIsIndex ? slides.length : total;
-    try { localStorage.setItem(slideCountKey, JSON.stringify(savedCounts)); } catch (e) {}
+    return false;
   }
 
-  function updateProgress(position) {
-    if (!progressBar || total === 0 || totalProgressChapters === 0) return;
+  function countSectionsIn(root) {
+    var count = 0;
+    (function walk(el) {
+      if (!el) return;
+      for (var i = 0; i < el.children.length; i++) {
+        var child = el.children[i];
+        if (child.matches('section[class*="level"]')) {
+          count++;
+          walk(child);
+        }
+      }
+    })(root);
+    return count;
+  }
 
-    // Estimate slides per chapter; fall back to current page count for unknowns
-    var knownSum = 0, knownCount = 0;
-    for (var pi = 0; pi < progressLinks.length; pi++) {
-      var pPath = pathFromHref(progressLinks[pi].getAttribute("href") || "");
-      if (savedCounts[pPath]) { knownSum += savedCounts[pPath]; knownCount++; }
+  function countPassagesInDocument(doc) {
+    var root = doc ? doc.getElementById("quarto-document-content") : null;
+    if (!root) return 0;
+    return countSectionsIn(root) + (hasPreludeIn(root) ? 1 : 0);
+  }
+
+  function bookPageUrlFromHref(href) {
+    try {
+      var url = new URL(href, window.location.href);
+      if (url.origin !== window.location.origin) return null;
+      url.hash = "";
+      return url;
+    } catch (e) {
+      return null;
     }
-    var avgSlides = knownCount > 0 ? knownSum / knownCount : total;
+  }
 
-    var indexSlides = savedCounts["__index__"] || (currentIsIndex ? total : avgSlides);
-    var chapterSlidesTotal = 0;
-    for (var pi = 0; pi < progressLinks.length; pi++) {
-      var pPath = pathFromHref(progressLinks[pi].getAttribute("href") || "");
-      chapterSlidesTotal += savedCounts[pPath] || avgSlides;
-    }
-    var grandTotal = indexSlides + chapterSlidesTotal;
+  function bookPageFromDocument(doc, url, count) {
+    return {
+      key: bookPageKey(url.pathname || "/"),
+      url: url.href,
+      count: typeof count === "number" ? count : countPassagesInDocument(doc),
+      doc: doc
+    };
+  }
 
-    var globalPct;
-    if (currentIsIndex) {
-      // Prelude (position=1) → 0%; first section → 1/grandTotal regardless of whether prelude exists.
-      globalPct = Math.max(0, position - (hasPrelude ? 1 : 0)) / grandTotal;
-    } else if (chapterProgressIdx < 0) {
-      progressBar.style.width = "0%";
-      return;
+  function linkedBookPageUrl(doc, baseUrl, rel) {
+    var link = doc.querySelector('link[rel~="' + rel + '"]');
+    if (!link) return null;
+    return bookPageUrlFromHref(new URL(link.getAttribute("href") || "", baseUrl).href);
+  }
+
+  function fetchBookPage(url) {
+    var parser = new DOMParser();
+    return fetch(url.href, { credentials: "same-origin" })
+      .then(function (response) {
+        if (!response.ok) throw new Error("Unable to load " + url.href);
+        return response.text();
+      })
+      .then(function (html) {
+        var doc = parser.parseFromString(html, "text/html");
+        return bookPageFromDocument(doc, url);
+      });
+  }
+
+  var bookProgress = {
+    ready: false,
+    failed: false,
+    pages: [],
+    currentPageIndex: -1,
+    currentPageStart: 0,
+    totalPassages: 0
+  };
+  var progressStorageKey = "quarto-book-presentation-progress";
+
+  function setProgressWidth(percent, animate) {
+    if (!progressBar) return;
+
+    percent = Math.max(0, Math.min(percent, 100));
+    if (animate === false) {
+      var previousTransition = progressBar.style.transition;
+      progressBar.style.transition = "none";
+      progressBar.style.width = percent + "%";
+      progressBar.offsetHeight;
+      progressBar.style.transition = previousTransition;
     } else {
-      var slidesBefore = indexSlides;
-      for (var pi = 0; pi < chapterProgressIdx; pi++) {
-        var pPath = pathFromHref(progressLinks[pi].getAttribute("href") || "");
-        slidesBefore += savedCounts[pPath] || avgSlides;
-      }
-      globalPct = (slidesBefore + position) / grandTotal;
+      progressBar.style.width = percent + "%";
     }
-    progressBar.style.width = (Math.min(globalPct, 1) * 100) + "%";
+  }
+
+  function saveProgressWidth(percent) {
+    try { localStorage.setItem(progressStorageKey, String(percent)); } catch (e) {}
+  }
+
+  function restoreProgressWidth() {
+    try {
+      if (localStorage.getItem("quarto-book-presentation-mode") !== "1") return;
+      var savedProgress = parseFloat(localStorage.getItem(progressStorageKey) || "");
+      if (!isNaN(savedProgress)) setProgressWidth(savedProgress, false);
+    } catch (e) {}
+  }
+
+  restoreProgressWidth();
+
+  function finishBookProgressSetup() {
+    bookProgress.totalPassages = 0;
+    bookProgress.currentPageStart = 0;
+    bookProgress.currentPageIndex = -1;
+
+    for (var i = 0; i < bookProgress.pages.length; i++) {
+      if (bookProgress.pages[i].key === currentPath) {
+        bookProgress.currentPageIndex = i;
+        bookProgress.currentPageStart = bookProgress.totalPassages;
+      }
+      bookProgress.totalPassages += bookProgress.pages[i].count;
+    }
+
+    bookProgress.ready = !bookProgress.failed &&
+      bookProgress.totalPassages > 0 &&
+      bookProgress.currentPageIndex >= 0;
+  }
+
+  function setupBookProgress() {
+    var currentUrl = bookPageUrlFromHref(window.location.href);
+    if (!currentUrl) return;
+
+    var seen = {};
+    var currentPage = bookPageFromDocument(document, currentUrl, total);
+    var before = [];
+    var after = [];
+    seen[currentPage.key] = true;
+
+    function collectPrevious(fromPage) {
+      var prevUrl = linkedBookPageUrl(fromPage.doc, fromPage.url, "prev");
+      if (!prevUrl) return Promise.resolve();
+
+      var key = bookPageKey(prevUrl.pathname || "/");
+      if (seen[key]) return Promise.resolve();
+      seen[key] = true;
+
+      return fetchBookPage(prevUrl).then(function (page) {
+        before.unshift(page);
+        return collectPrevious(page);
+      });
+    }
+
+    function collectNext(fromPage) {
+      var nextUrl = linkedBookPageUrl(fromPage.doc, fromPage.url, "next");
+      if (!nextUrl) return Promise.resolve();
+
+      var key = bookPageKey(nextUrl.pathname || "/");
+      if (seen[key]) return Promise.resolve();
+      seen[key] = true;
+
+      return fetchBookPage(nextUrl).then(function (page) {
+        after.push(page);
+        return collectNext(page);
+      });
+    }
+
+    Promise.all([collectPrevious(currentPage), collectNext(currentPage)]).then(function () {
+      bookProgress.pages = before.concat([currentPage], after);
+      finishBookProgressSetup();
+      updateProgress(currentIdx < 0 ? 1 : currentIdx + 1 + (hasPrelude ? 1 : 0));
+    }).catch(function () {
+      bookProgress.failed = true;
+      updateProgress(currentIdx < 0 ? 1 : currentIdx + 1 + (hasPrelude ? 1 : 0));
+    });
+  }
+
+  setupBookProgress();
+
+  // One progress step per presentation passage across the whole book.
+  // position: 1 = prelude (or first slide when no prelude), up to total.
+  function updateProgress(position) {
+    if (!progressBar || total === 0) return;
+
+    position = Math.max(1, Math.min(position, total));
+
+    if (bookProgress.ready) {
+      var globalIndex = bookProgress.currentPageStart + position - 1;
+      var denominator = Math.max(bookProgress.totalPassages - 1, 1);
+      var percent = bookProgress.totalPassages === 1 ? 100 : (globalIndex / denominator) * 100;
+      setProgressWidth(percent, true);
+      saveProgressWidth(percent);
+      return;
+    }
+
+    if (bookProgress.failed) {
+      var localDenominator = Math.max(total - 1, 1);
+      var localPercent = total === 1 ? 100 : ((position - 1) / localDenominator) * 100;
+      setProgressWidth(localPercent, true);
+    }
   }
 
   function clearPresClasses() {
