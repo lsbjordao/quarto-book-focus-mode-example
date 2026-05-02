@@ -32,6 +32,12 @@ document.addEventListener("DOMContentLoaded", function () {
   indicator.appendChild(counter);
   document.body.appendChild(indicator);
 
+  /* ── Desktop-only guard ── */
+  if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+    button.style.display = "none";
+    return;
+  }
+
   /* ── Focus Mode ── */
   var hasBookSidebar = document.querySelector("#quarto-sidebar") !== null;
   if (!hasBookSidebar) {

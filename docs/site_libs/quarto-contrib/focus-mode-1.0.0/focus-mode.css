@@ -170,3 +170,12 @@ body.book-presentation-mode #book-pres-progress {
 body.book-presentation-mode #book-pres-indicator {
   display: inline-flex;
 }
+
+/* ── Desktop-only: hide all UI on touch/mobile devices ── */
+@media not all and (hover: hover) and (pointer: fine) {
+  #book-focus-toggle,
+  #book-pres-progress,
+  #book-pres-indicator {
+    display: none !important;
+  }
+}
