@@ -16,16 +16,5 @@ function Meta(meta)
     scripts    = { pandoc.path.join({ dir, "focus-mode.js"  }) },
   })
 
-  local html_path = pandoc.path.join({ dir, "focus-mode.html" })
-  local html_file = io.open(html_path, "r")
-  if html_file == nil then
-    quarto.log.warning("focus-mode.html not found; Focus Mode was not injected.")
-    return meta
-  end
-
-  local html = html_file:read("*all")
-  html_file:close()
-  quarto.doc.include_text("after-body", html)
-
   return meta
 end

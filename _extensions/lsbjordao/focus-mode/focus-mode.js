@@ -1,13 +1,41 @@
 document.addEventListener("DOMContentLoaded", function () {
 
-  /* ── Focus Mode ── */
-  var button = document.getElementById("book-focus-toggle");
-  var icon   = document.getElementById("book-focus-icon");
-  var label  = document.getElementById("book-focus-label");
+  /* ── Create DOM elements ── */
+  var button = document.createElement("button");
+  button.id = "book-focus-toggle";
+  button.setAttribute("aria-label", "Focus Mode");
+  button.setAttribute("type", "button");
 
+  var icon = document.createElement("span");
+  icon.id = "book-focus-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = "⛶";
+
+  var label = document.createElement("span");
+  label.id = "book-focus-label";
+  label.textContent = "Focus Mode";
+
+  button.appendChild(icon);
+  button.appendChild(label);
+  document.body.appendChild(button);
+
+  var progressBar = document.createElement("div");
+  progressBar.id = "book-pres-progress";
+  document.body.appendChild(progressBar);
+
+  var indicator = document.createElement("div");
+  indicator.id = "book-pres-indicator";
+  indicator.setAttribute("aria-live", "polite");
+
+  var counter = document.createElement("span");
+  counter.id = "book-pres-counter";
+  indicator.appendChild(counter);
+  document.body.appendChild(indicator);
+
+  /* ── Focus Mode ── */
   var hasBookSidebar = document.querySelector("#quarto-sidebar") !== null;
   if (!hasBookSidebar) {
-    if (button) button.style.display = "none";
+    button.style.display = "none";
     return;
   }
 
@@ -36,7 +64,6 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   /* ── Presentation Mode ── */
-  var counter     = document.getElementById("book-pres-counter");
   var contentRoot = document.getElementById("quarto-document-content");
   if (!contentRoot) return;
 
@@ -80,11 +107,11 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   var total = slides.length + (hasPrelude ? 1 : 0);
-  var progressBar = document.getElementById("book-pres-progress");
 
   // Compute this chapter's position within the full book via the sidebar links
   // while ignoring index/opening pages in progress calculations.
   var chapterProgressIdx = -1, totalProgressChapters = 0;
+  var progressLinks = [];
 
   function normalizePath(path) {
     if (!path) return "/";
@@ -104,7 +131,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function isIndexPath(path) {
     path = String(path || "").trim().toLowerCase();
-    // A path ending with "/" is always a directory index (e.g. /repo-name/ on GitHub Pages)
     if (path === "/" || path.endsWith("/")) return true;
     path = normalizePath(path);
     return path === "/index" ||
@@ -122,16 +148,11 @@ document.addEventListener("DOMContentLoaded", function () {
     var links  = document.querySelectorAll("#quarto-sidebar a[href]");
     var active = document.querySelector("#quarto-sidebar a.active, #quarto-sidebar a[aria-current]");
     if (links.length > 0) {
-      var progressLinks = [];
       for (var i = 0; i < links.length; i++) {
         var href = links[i].getAttribute("href") || "";
-        var linkPath = pathFromHref(href);
-        if (isIndexPath(linkPath)) {
-          continue;
-        }
+        if (isIndexPath(pathFromHref(href))) continue;
         progressLinks.push(links[i]);
       }
-
       totalProgressChapters = progressLinks.length;
 
       if (active) {
@@ -139,37 +160,60 @@ document.addEventListener("DOMContentLoaded", function () {
           if (progressLinks[k] === active) { chapterProgressIdx = k; break; }
         }
       }
-
       if (chapterProgressIdx < 0) {
         for (var m = 0; m < progressLinks.length; m++) {
           var pHref = progressLinks[m].getAttribute("href") || "";
-          if (pathFromHref(pHref) === currentPath) {
-            chapterProgressIdx = m;
-            break;
-          }
+          if (pathFromHref(pHref) === currentPath) { chapterProgressIdx = m; break; }
         }
       }
-
-      if (currentIsIndex) {
-        chapterProgressIdx = -1;
-      }
+      if (currentIsIndex) chapterProgressIdx = -1;
     }
   })();
 
+  // Cache slide counts per page so each slide has equal global weight
+  var slideCountKey = "quarto-book-pres-slide-counts";
+  var savedCounts = {};
+  try { savedCounts = JSON.parse(localStorage.getItem(slideCountKey) || "{}"); } catch (e) {}
+  if (total > 0) {
+    savedCounts[currentIsIndex ? "__index__" : currentPath] = total;
+    try { localStorage.setItem(slideCountKey, JSON.stringify(savedCounts)); } catch (e) {}
+  }
+
   function updateProgress(position) {
     if (!progressBar || total === 0 || totalProgressChapters === 0) return;
-    var effectiveTotal = Math.max(1, totalProgressChapters);
+
+    // Estimate slides per chapter; fall back to current page count for unknowns
+    var knownSum = 0, knownCount = 0;
+    for (var pi = 0; pi < progressLinks.length; pi++) {
+      var pPath = pathFromHref(progressLinks[pi].getAttribute("href") || "");
+      if (savedCounts[pPath]) { knownSum += savedCounts[pPath]; knownCount++; }
+    }
+    var avgSlides = knownCount > 0 ? knownSum / knownCount : total;
+
+    var indexSlides = savedCounts["__index__"] || (currentIsIndex ? total : avgSlides);
+    var chapterSlidesTotal = 0;
+    for (var pi = 0; pi < progressLinks.length; pi++) {
+      var pPath = pathFromHref(progressLinks[pi].getAttribute("href") || "");
+      chapterSlidesTotal += savedCounts[pPath] || avgSlides;
+    }
+    var grandTotal = indexSlides + chapterSlidesTotal;
+
     var globalPct;
     if (currentIsIndex) {
-      // Prelude (position=1) stays at 0%; sections advance toward 1/N
-      globalPct = (position - 1) / total / effectiveTotal;
+      // Prelude (position=1) = 0%; sections advance proportionally
+      globalPct = (position - 1) / grandTotal;
     } else if (chapterProgressIdx < 0) {
       progressBar.style.width = "0%";
       return;
     } else {
-      globalPct = (chapterProgressIdx / effectiveTotal) + (position / total / effectiveTotal);
+      var slidesBefore = indexSlides;
+      for (var pi = 0; pi < chapterProgressIdx; pi++) {
+        var pPath = pathFromHref(progressLinks[pi].getAttribute("href") || "");
+        slidesBefore += savedCounts[pPath] || avgSlides;
+      }
+      globalPct = (slidesBefore + position) / grandTotal;
     }
-    progressBar.style.width = (globalPct * 100) + "%";
+    progressBar.style.width = (Math.min(globalPct, 1) * 100) + "%";
   }
 
   function clearPresClasses() {
