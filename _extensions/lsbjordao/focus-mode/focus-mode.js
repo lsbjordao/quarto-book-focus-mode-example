@@ -92,6 +92,8 @@ document.addEventListener("DOMContentLoaded", function () {
   /* enough — the keyup still fires and opens search. Both events are         */
   /* intercepted here at window capture (above document in the event path).   */
   function onFocusKey(e) {
+    /* Ignore when a modifier is held so Ctrl/Cmd+F (browser find) etc. work. */
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     var tag = document.activeElement ? document.activeElement.tagName : "";
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" ||
         (document.activeElement && document.activeElement.isContentEditable)) return;
@@ -584,6 +586,9 @@ document.addEventListener("DOMContentLoaded", function () {
   window.addEventListener("hashchange", jumpToHash);
 
   document.addEventListener("keydown", function (e) {
+    /* Ignore when a modifier is held so browser shortcuts (Ctrl/Cmd+P, +D,    */
+    /* +L, +T, etc.) keep working instead of triggering our plain-key actions. */
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     var tag = document.activeElement ? document.activeElement.tagName : "";
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" ||
         (document.activeElement && document.activeElement.isContentEditable)) return;
