@@ -92,6 +92,8 @@ document.addEventListener("DOMContentLoaded", function () {
   /* enough — the keyup still fires and opens search. Both events are         */
   /* intercepted here at window capture (above document in the event path).   */
   function onFocusKey(e) {
+    /* Ignore when a modifier is held so Ctrl/Cmd+F (browser find) etc. work. */
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     var tag = document.activeElement ? document.activeElement.tagName : "";
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" ||
         (document.activeElement && document.activeElement.isContentEditable)) return;
@@ -137,17 +139,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
   /* ── Color scheme tracking ── */
   var schemeToggle = document.querySelector(".quarto-color-scheme-toggle");
-  var colorIsDark  = false;
-  if (schemeToggle) {
-    if (schemeToggle.getAttribute("aria-pressed") === "true") {
-      colorIsDark = true;
-    } else {
-      try {
-        var stored = localStorage.getItem("quarto-color-scheme");
-        colorIsDark = !!stored && stored !== "default";
-      } catch (e) {}
-    }
-    schemeToggle.addEventListener("click", function () { colorIsDark = !colorIsDark; });
+
+  function isDarkColorScheme() {
+    if (document.body && document.body.classList.contains("quarto-dark")) return true;
+    if (document.body && document.body.classList.contains("quarto-light")) return false;
+
+    var activeBootstrap = document.querySelector('link#quarto-bootstrap:not([rel="disabled-stylesheet"])');
+    if (activeBootstrap && activeBootstrap.getAttribute("data-mode") === "dark") return true;
+    if (activeBootstrap && activeBootstrap.getAttribute("data-mode") === "light") return false;
+
+    if (document.documentElement.getAttribute("data-bs-theme") === "dark") return true;
+    if (document.documentElement.getAttribute("data-bs-theme") === "light") return false;
+
+    return false;
   }
 
   var total = slides.length + (hasPrelude ? 1 : 0);
@@ -582,6 +586,9 @@ document.addEventListener("DOMContentLoaded", function () {
   window.addEventListener("hashchange", jumpToHash);
 
   document.addEventListener("keydown", function (e) {
+    /* Ignore when a modifier is held so browser shortcuts (Ctrl/Cmd+P, +D,    */
+    /* +L, +T, etc.) keep working instead of triggering our plain-key actions. */
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     var tag = document.activeElement ? document.activeElement.tagName : "";
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" ||
         (document.activeElement && document.activeElement.isContentEditable)) return;
@@ -596,7 +603,8 @@ document.addEventListener("DOMContentLoaded", function () {
       e.preventDefault();
       if (!schemeToggle) return;
       var wantDark = (e.key === "d" || e.key === "D");
-      if (wantDark !== colorIsDark) schemeToggle.click();
+      var isDark = isDarkColorScheme();
+      if (wantDark !== isDark) schemeToggle.click();
       return;
     }
 
