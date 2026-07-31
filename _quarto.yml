@@ -15,6 +15,7 @@ book:
     - chapter-04.qmd
   abstract: |
     This is an example of a Quarto Book that uses the [focus-mode extension of Quarto-book](https://github.com/lsbjordao/quarto-book-focus-mode)
+  google-analytics: "G-F1CF5FX95R"
 
 format:
   html:
